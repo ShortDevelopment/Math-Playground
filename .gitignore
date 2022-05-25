@@ -1,0 +1,12 @@
+.idea
+node_modules/
+
+# Include "node_modules/@types/desmos/index.d.ts"
+# It's needed for autocomplete!
+
+!node_modules/
+node_modules/*
+!node_modules/@types/
+!node_modules/@types/desmos/
+node_modules/@types/desmos/*
+!node_modules/@types/desmos/index.d.ts
