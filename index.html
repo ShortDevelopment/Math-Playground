@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <meta name=viewport content="width=device-width,initial-scale=1">
-    <meta charset="utf-8"/>
+    <meta charset="utf-8" />
 
     <style>
         body {
@@ -26,15 +27,15 @@
     <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
     <script>
 
-        require.config({paths: {'vs': 'https://unpkg.com/monaco-editor@latest/min/vs'}});
-        window.MonacoEnvironment = {getWorkerUrl: () => proxy};
+        require.config({ paths: { 'vs': 'https://unpkg.com/monaco-editor@latest/min/vs' } });
+        window.MonacoEnvironment = { getWorkerUrl: () => proxy };
 
         let proxy = URL.createObjectURL(new Blob([`
             self.MonacoEnvironment = {
                 baseUrl: 'https://unpkg.com/monaco-editor@latest/min/'
             };
             importScripts('https://unpkg.com/monaco-editor@latest/min/vs/base/worker/workerMain.js');
-        `], {type: 'text/javascript'}));
+        `], { type: 'text/javascript' }));
 
         require(['vs/editor/editor.main'], async () => {
             const placeholder = document.getElementById("editor");
@@ -56,13 +57,13 @@ addFunc("x^2");
             const parent = placeholder.parentElement;
             window.addEventListener('resize', () => {
                 // make editor as small as possible
-                editor.layout({width: 0, height: 0})
+                editor.layout({ width: 0, height: 0 })
 
                 // wait for next frame to ensure last layout finished
                 window.requestAnimationFrame(() => {
                     // get the parent dimensions and re-layout the editor
                     const rect = parent.getBoundingClientRect()
-                    editor.layout({width: rect.width, height: rect.height})
+                    editor.layout({ width: rect.width, height: rect.height })
                 })
             })
 
@@ -82,118 +83,130 @@ addFunc("x^2");
                 }
             })
 
-            monaco.languages.typescript.javascriptDefaults.addExtraLib(`
-declare function clear(): void;
-declare function addFunc(latex: string): void;
-declare function addTable(x: number[], y: number[]): void;
-declare const calculator: Desmos.Calculator;
-        `, 'ts:filename/global.d.ts');
+            const globalCode = await fetch("calc.d.ts").then((x) => x.text());
+            monaco.languages.typescript.javascriptDefaults.addExtraLib(globalCode, 'ts:filename/global.d.ts');
 
             const desmos_code = await fetch("node_modules/@types/desmos/index.d.ts").then((x) => x.text());
             monaco.languages.typescript.javascriptDefaults.addExtraLib(desmos_code, 'ts:filename/desmos.d.ts');
         });
     </script>
 </head>
+
 <body>
 
-<div class="content_container">
-    <div id="calculator"></div>
-    <div id="right_content">
-        <div id="shortdev_controls">
-            <style>
-                #right_content {
-                    display: grid;
-                    grid-template-rows: auto 1fr;
-                }
+    <div class="content_container">
+        <div id="calculator"></div>
+        <div id="right_content">
+            <div id="shortdev_controls">
+                <style>
+                    #right_content {
+                        display: grid;
+                        grid-template-rows: auto 1fr;
+                    }
 
-                #shortdev_controls {
-                    padding: 10px 15px;
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                    background: #fff;
-                }
+                    #shortdev_controls {
+                        padding: 10px 15px;
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        background: #fff;
+                    }
 
-                icon {
-                    font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
-                }
+                    icon {
+                        font-family: 'Segoe Fluent Icons', 'Segoe MDL2 Assets';
+                    }
 
-                .shortdev_button {
-                    border: none;
-                    border-radius: 8px;
-                    padding: 7px 12px;
-                    background: #7CB342;
-                    cursor: pointer;
-                    display: inline-flex;
-                    flex-direction: row;
-                    justify-content: space-around;
-                    margin: 0px 2px;
-                }
+                    .shortdev_button {
+                        border: none;
+                        border-radius: 8px;
+                        padding: 7px 12px;
+                        background: #7CB342;
+                        cursor: pointer;
+                        display: inline-flex;
+                        flex-direction: row;
+                        justify-content: space-around;
+                        margin: 0px 2px;
+                    }
 
-                .shortdev_button:active {
-                    background: #689F38;
-                }
+                    .shortdev_button:active {
+                        background: #689F38;
+                    }
 
-                .shortdev_button > * {
-                    padding: 5px;
-                }
-            </style>
-            <button class="shortdev_button" onclick="ExecuteCode();">
-                <icon></icon>
-                <span>Run</span>
-            </button>
-            <button class="shortdev_button" onclick="window.open('https://www.desmos.com/api');">
-                <icon>&#xe897;</icon>
-                <span>Help</span>
-            </button>
-        </div>
-        <div>
-            <div id="editor" style="height: 100%;"></div>
+                    .shortdev_button>* {
+                        padding: 5px;
+                    }
+                </style>
+                <button class="shortdev_button" onclick="ExecuteCode();">
+                    <icon></icon>
+                    <span>Run</span>
+                </button>
+                <button class="shortdev_button" onclick="window.open('https://www.desmos.com/api');">
+                    <icon>&#xe897;</icon>
+                    <span>Help</span>
+                </button>
+            </div>
+            <div>
+                <div id="editor" style="height: 100%;"></div>
+            </div>
         </div>
     </div>
-</div>
 
-<script>
-    const ele = document.getElementById('calculator');
-    window.calculator = Desmos.GraphingCalculator(ele, {
-        settingsMenu: true,
-        zoomButtons: false,
-        expressions: true,
-        keypad: false,
-        actions: false
-    });
-
-    function clear() {
-        calculator.removeExpressions(calculator.getExpressions());
-    }
-
-    function addFunc(latex) {
-        calculator.setExpression({latex});
-    }
-
-    function addTable(x, y) {
-        calculator.setExpression({
-            type: 'table',
-            columns: [
-                {
-                    latex: 'x',
-                    values: x
-                },
-                {
-                    latex: 'y',
-                    values: y
-                }
-            ]
+    <script>
+        const ele = document.getElementById('calculator');
+        window.calculator = Desmos.GraphingCalculator(ele, {
+            settingsMenu: true,
+            zoomButtons: false,
+            expressions: true,
+            keypad: false,
+            actions: false
         });
-    }
 
-    function ExecuteCode(code = null) {
-        if (!code)
-            code = window.editor.getValue();
-        const func = new Function(code);
-        func.bind({})();
-    }
-</script>
+        function clear() {
+            calculator.removeExpressions(calculator.getExpressions());
+        }
+
+        function addFunc(latex) {
+            calculator.setExpression({ latex });
+        }
+
+        function addTable(x, y) {
+            calculator.setExpression({
+                type: 'table',
+                columns: [
+                    {
+                        latex: 'x',
+                        values: x
+                    },
+                    {
+                        latex: 'y',
+                        values: y
+                    }
+                ]
+            });
+        }
+
+        function addTable2(f, min = 0, max = 5, step = 1) {
+            const x = [];
+            const y = [];
+            for (let i = min; i < max; i += step) {
+                x.push(i);
+                y.push(f(i));
+            }
+            addTable(x, y);
+        }
+
+        function ExecuteCode(code = null) {
+            if (!code)
+                code = window.editor.getValue();
+            const func = new Function(code);
+            try {
+                func.bind({})();
+            } catch (error) {
+                alert(error);
+            }
+        }
+    </script>
 
 </body>
+
 </html>
